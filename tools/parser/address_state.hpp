@@ -36,10 +36,10 @@ template <blocksci::AddressType::Enum type> struct NonDudupAddressInfo {
   uint32_t addressNum;
 };
 
-template <blocksci::DedupAddressType::Enum> constexpr int startingCount = 0;
-template <> constexpr int startingCount<blocksci::DedupAddressType::PUBKEY> = 600'000'000;
-template <> constexpr int startingCount<blocksci::DedupAddressType::SCRIPTHASH> = 100'000'000;
-template <> constexpr int startingCount<blocksci::DedupAddressType::MULTISIG> = 100'000'000;
+template <blocksci::DedupAddressType::Enum> inline constexpr int startingCount = 0;
+template <> inline constexpr int startingCount<blocksci::DedupAddressType::PUBKEY> = 600'000'000;
+template <> inline constexpr int startingCount<blocksci::DedupAddressType::SCRIPTHASH> = 100'000'000;
+template <> inline constexpr int startingCount<blocksci::DedupAddressType::MULTISIG> = 100'000'000;
 
 class AddressState {
   static constexpr auto AddressFalsePositiveRate = .05;

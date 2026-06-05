@@ -35,7 +35,6 @@
 #include <blocksci/core/raw_block.hpp>
 #include <blocksci/core/typedefs.hpp>
 
-#include <bits/chrono.h>
 #include <boost/lockfree/policies.hpp>
 #include <mio/mmap.hpp>
 

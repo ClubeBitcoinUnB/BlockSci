@@ -2,7 +2,7 @@
   description = "BlockSci analysis tool for blockchains";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -12,20 +12,14 @@
       nixpkgs,
       flake-utils,
     }:
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (
+    flake-utils.lib.eachDefaultSystem (
       system:
       let
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
             (final: prev: {
-              libjson-rpc-cpp = prev.libjson-rpc-cpp.overrideAttrs (old: {
-                postPatch = (old.postPatch or "") + ''
-                  substituteInPlace CMakeLists.txt \
-                    --replace-fail 'option(WITH_COVERAGE "Build with code coverage flags" ON)' \
-                                   'option(WITH_COVERAGE "Build with code coverage flags" OFF)'
-                '';
-              });
+              libjson-rpc-cpp = final.callPackage ./nix/libjson-rpc-cpp.nix {};
             })
           ];
         };
@@ -162,8 +156,17 @@
             export PATH="$LOCAL_PIP/bin:$PATH"
 
             export CMAKE_PREFIX_PATH="$PWD/.nix-install:$CMAKE_PREFIX_PATH"
-            export LD_LIBRARY_PATH="$PWD/.nix-install/lib64:$LD_LIBRARY_PATH"
-          '';
+          ''
+          + (
+            if pkgs.stdenv.isDarwin then
+              ''
+                export DYLD_LIBRARY_PATH="$PWD/.nix-install/lib:$DYLD_LIBRARY_PATH"
+              ''
+            else
+              ''
+                export LD_LIBRARY_PATH="$PWD/.nix-install/lib64:$LD_LIBRARY_PATH"
+              ''
+          );
         };
 
         packages.bitcoin-api-cpp = pkgs.stdenv.mkDerivation {
@@ -180,6 +183,11 @@
           nativeBuildInputs = with pkgs; [
             cmake
           ];
+          
+          postPatch = ''
+            substituteInPlace CMakeLists.txt \
+              --replace-fail "set(CMAKE_CXX_STANDARD 14)" "set(CMAKE_CXX_STANDARD 17)"
+          '';
 
           buildInputs = with pkgs; [
             curl

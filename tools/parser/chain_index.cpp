@@ -19,7 +19,6 @@
 #include <blocksci/core/typedefs.hpp>
 
 #include <bitcoinapi/exception.h>
-#include <bits/chrono.h>
 
 #include <tuple>
 
