@@ -1,6 +1,3 @@
-[submodule "Notebooks/blocksci/Blockchain-Known-Pools"]
-	path = blockscipy/blocksci/Blockchain-Known-Pools
-	url = https://github.com/blockchain/Blockchain-Known-Pools
 [submodule "test/testchain-generator"]
 	path = test/testchain-generator
 	url = https://github.com/citp/testchain-generator

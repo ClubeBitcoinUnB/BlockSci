@@ -32,6 +32,12 @@
             pycryptodome
             requests
           ];
+        knownPools = pkgs.fetchFromGitHub {
+          owner = "blockchain";
+          repo = "Blockchain-Known-Pools";
+          rev = "29ab27c844ebdb63110f8783f73b9decd4abc221";
+          sha256 = "sha256-nFWprW6+PXDCIW/IjbAm9PNTMs+Clu42gCtfNnTU8QI=";
+        };
         mkHeaderOnly =
           {
             pname,
@@ -122,6 +128,12 @@
           ];
 
           dependencies = pythonRuntimeDeps pkgs.python3Packages;
+
+          postInstall = ''
+            mkdir -p "$out/${pkgs.python3.sitePackages}/blocksci/Blockchain-Known-Pools"
+            cp ${knownPools}/pools.json \
+              "$out/${pkgs.python3.sitePackages}/blocksci/Blockchain-Known-Pools/pools.json"
+          '';
 
           pythonImportsCheck = [ "blocksci" ];
 
