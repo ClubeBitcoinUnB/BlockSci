@@ -7,7 +7,8 @@ This project ships a Nix flake that provides:
 - A development shell (`devShells.default`) that reproduces the upstream
   build manual with all native dependencies preinstalled, no system pollution.
 
-The flake is pinned to `nixpkgs-25.11`. Supported systems: `x86_64-linux`.
+The flake is pinned to `nixpkgs-25.11` and targets the four default systems
+(`x86_64`/`aarch64` × Linux/macOS).
 
 ## Build libblocksci and the command-line tools
 
@@ -49,7 +50,8 @@ cd ..
 pip install --no-build-isolation --prefix=$LOCAL_PIP ./blockscipy
 ```
 
-`LOCAL_PIP`, `CMAKE_PREFIX_PATH` and `LD_LIBRARY_PATH` are exported by the
+`LOCAL_PIP`, `CMAKE_PREFIX_PATH` and the dynamic-linker search path
+(`LD_LIBRARY_PATH`, or `DYLD_LIBRARY_PATH` on macOS) are exported by the
 shellHook so the two halves find each other at build and run time.
 `--no-build-isolation` makes pip use the `scikit-build-core` backend from the
 shell instead of fetching it from PyPI.
