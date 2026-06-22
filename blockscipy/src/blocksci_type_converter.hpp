@@ -22,39 +22,39 @@
 
 struct BlockSciTypeConverter {
 
-  template <typename T> T operator()(const T &t) {
+  template <typename T> T operator()(const T &t) const {
     return t;
   }
 
-  blocksci::AnyScript operator()(const blocksci::Address &address);
+  blocksci::AnyScript operator()(const blocksci::Address &address) const;
 
-  int64_t operator()(uint16_t val) {
+  int64_t operator()(uint16_t val) const {
     return static_cast<int64_t>(val);
   }
 
-  int64_t operator()(int16_t val) {
+  int64_t operator()(int16_t val) const {
     return static_cast<int64_t>(val);
   }
 
-  int64_t operator()(uint32_t val) {
+  int64_t operator()(uint32_t val) const {
     return static_cast<int64_t>(val);
   }
 
-  int64_t operator()(int32_t val) {
+  int64_t operator()(int32_t val) const {
     return static_cast<int64_t>(val);
   }
 
   // Potential overflow
-  int64_t operator()(uint64_t val) {
+  int64_t operator()(uint64_t val) const {
     return static_cast<int64_t>(val);
   }
 
-  RawRange<blocksci::Input> operator()(const blocksci::InputRange &val);
-  RawRange<blocksci::Output> operator()(const blocksci::OutputRange &val);
-  RawRange<blocksci::Block> operator()(const blocksci::BlockRange &val);
+  RawRange<blocksci::Input> operator()(const blocksci::InputRange &val) const;
+  RawRange<blocksci::Output> operator()(const blocksci::OutputRange &val) const;
+  RawRange<blocksci::Block> operator()(const blocksci::BlockRange &val) const;
 
   template <typename T>
-  auto operator()(const ranges::optional<T> &val) -> ranges::optional<decltype(this->operator()(*val))> {
+  auto operator()(const ranges::optional<T> &val) const -> ranges::optional<decltype(this->operator()(*val))> {
     if (val) {
       return this->operator()(*val);
     } else {
@@ -62,11 +62,11 @@ struct BlockSciTypeConverter {
     }
   }
 
-  template <typename T> auto operator()(Iterator<T> &val) -> Iterator<decltype(this->operator()(*val))> {
+  template <typename T> auto operator()(Iterator<T> &val) const -> Iterator<decltype(this->operator()(*val))> {
     return val | ranges::views::transform(this);
   }
 
-  template <typename T> auto operator()(Range<T> &val) -> Range<decltype(this->operator()(*val))> {
+  template <typename T> auto operator()(Range<T> &val) const -> Range<decltype(this->operator()(*val))> {
     return val | ranges::views::transform(this);
   }
 };

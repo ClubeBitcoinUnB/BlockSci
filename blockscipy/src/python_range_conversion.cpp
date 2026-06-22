@@ -37,48 +37,49 @@ namespace py = pybind11;
 
 struct NumpyConverter {
 
-  template <typename T> T operator()(const T &val) {
+  template <typename T> T operator()(const T &val) const {
     return val;
   }
 
-  NumpyDatetime operator()(const std::chrono::system_clock::time_point &val) {
+  NumpyDatetime operator()(const std::chrono::system_clock::time_point &val) const {
     return {std::chrono::duration_cast<std::chrono::nanoseconds>(val.time_since_epoch()).count()};
   }
 
-  std::array<char, 64> operator()(const blocksci::uint256 &val) {
+  std::array<char, 64> operator()(const blocksci::uint256 &val) const {
     auto hexStr = val.GetHex();
     std::array<char, 64> ret;
     std::copy_n(hexStr.begin(), 64, ret.begin());
     return ret;
   }
 
-  std::array<char, 40> operator()(const blocksci::uint160 &val) {
+  std::array<char, 40> operator()(const blocksci::uint160 &val) const {
     auto hexStr = val.GetHex();
     std::array<char, 40> ret;
     std::copy_n(hexStr.begin(), 40, ret.begin());
     return ret;
   }
 
-  NumpyBool operator()(const bool &val) {
+  NumpyBool operator()(const bool &val) const {
     return {val};
   }
 };
 
 template <typename T>
-pybind11::array_t<decltype(NumpyConverter{}(std::declval<ranges::range_value_type_t<T>>()))>
+pybind11::array_t<decltype(NumpyConverter{}(std::declval<ranges::range_value_t<T>>()))>
     convertRandomSizedNumpy(T &&t) {
   auto numpy_converted = ranges::views::transform(std::move(t), NumpyConverter{});
   auto rangeSize = static_cast<size_t>(ranges::size(numpy_converted));
-  pybind11::array_t<ranges::range_value_type_t<decltype(numpy_converted)>> ret{rangeSize};
+  pybind11::array_t<ranges::range_value_t<decltype(numpy_converted)>> ret{
+      static_cast<pybind11::ssize_t>(rangeSize)};
   auto retPtr = ret.mutable_data();
   ranges::copy(numpy_converted, retPtr);
   return ret;
 }
 
 template <typename T>
-pybind11::array_t<decltype(NumpyConverter{}(std::declval<ranges::range_value_type_t<T>>()))> convertInputNumpy(T &&t) {
+pybind11::array_t<decltype(NumpyConverter{}(std::declval<ranges::range_value_t<T>>()))> convertInputNumpy(T &&t) {
   auto ret = ranges::to<std::vector>(ranges::views::transform(std::move(t), NumpyConverter{}));
-  return pybind11::array_t<typename decltype(ret)::value_type>{ret.size(), ret.data()};
+  return pybind11::array_t<typename decltype(ret)::value_type>{static_cast<pybind11::ssize_t>(ret.size()), ret.data()};
 }
 
 template <typename T> py::list convertRandomSizedPy(T &&t) {
@@ -101,15 +102,15 @@ template <typename T> py::list convertInputPy(T &&t) {
 }
 
 template <typename T>
-Iterator<decltype(BlockSciTypeConverter{}(std::declval<ranges::range_value_type_t<T>>()))> convertInputBlockSci(T &&t) {
-  return ranges::any_view<decltype(BlockSciTypeConverter{}(std::declval<ranges::range_value_type_t<T>>()))>{
+Iterator<decltype(BlockSciTypeConverter{}(std::declval<ranges::range_value_t<T>>()))> convertInputBlockSci(T &&t) {
+  return ranges::any_view<decltype(BlockSciTypeConverter{}(std::declval<ranges::range_value_t<T>>()))>{
       ranges::views::transform(std::forward<T>(t), BlockSciTypeConverter{})};
 }
 
 template <typename T>
-Range<decltype(BlockSciTypeConverter{}(std::declval<ranges::range_value_type_t<T>>()))>
+Range<decltype(BlockSciTypeConverter{}(std::declval<ranges::range_value_t<T>>()))>
     convertRandomSizedBlockSci(T &&t) {
-  return ranges::any_view<decltype(BlockSciTypeConverter{}(std::declval<ranges::range_value_type_t<T>>())),
+  return ranges::any_view<decltype(BlockSciTypeConverter{}(std::declval<ranges::range_value_t<T>>())),
                           random_access_sized>{ranges::views::transform(std::forward<T>(t), BlockSciTypeConverter{})};
 }
 

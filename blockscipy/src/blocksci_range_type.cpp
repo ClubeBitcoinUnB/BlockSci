@@ -29,7 +29,7 @@ struct BlocksciRangeTypeObjectCaster {
 
 struct BlockSciRangeToIterator {
   template <typename T> BlocksciIteratorType operator()(T &&t) {
-    return BlocksciIteratorType{RawIterator<ranges::range_value_type_t<T>>{std::forward<T>(t)}};
+    return BlocksciIteratorType{RawIterator<ranges::range_value_t<T>>{std::forward<T>(t)}};
   }
 };
 

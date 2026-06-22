@@ -97,8 +97,8 @@ template <typename T, typename BaseSimple> void setupRangesProxy(AllProxyClasses
               if (!slice.compute(chainSize, &start, &stop, &step, &slicelength))
                 throw pybind11::error_already_set();
 
-              auto subset = range[{static_cast<ranges::range_size_type_t<RawRange<T>>>(start),
-                                   static_cast<ranges::range_size_type_t<RawRange<T>>>(stop)}];
+              auto subset = range[{static_cast<ranges::range_size_t<RawRange<T>>>(start),
+                                   static_cast<ranges::range_size_t<RawRange<T>>>(stop)}];
               return subset | ranges::views::stride(step);
             });
           },

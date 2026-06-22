@@ -20,18 +20,18 @@
 
 #include <range/v3/view/any_view.hpp>
 
-blocksci::AnyScript BlockSciTypeConverter::operator()(const blocksci::Address &address) {
+blocksci::AnyScript BlockSciTypeConverter::operator()(const blocksci::Address &address) const {
   return address.getScript();
 }
 
-RawRange<blocksci::Input> BlockSciTypeConverter::operator()(const blocksci::InputRange &val) {
+RawRange<blocksci::Input> BlockSciTypeConverter::operator()(const blocksci::InputRange &val) const {
   return ranges::any_view<blocksci::Input, random_access_sized>{val};
 }
 
-RawRange<blocksci::Output> BlockSciTypeConverter::operator()(const blocksci::OutputRange &val) {
+RawRange<blocksci::Output> BlockSciTypeConverter::operator()(const blocksci::OutputRange &val) const {
   return ranges::any_view<blocksci::Output, random_access_sized>{val};
 }
 
-RawRange<blocksci::Block> BlockSciTypeConverter::operator()(const blocksci::BlockRange &val) {
+RawRange<blocksci::Block> BlockSciTypeConverter::operator()(const blocksci::BlockRange &val) const {
   return ranges::any_view<blocksci::Block, random_access_sized>{val};
 }
