@@ -19,10 +19,10 @@ import time
 from functools import reduce
 
 import dateparser
+import multiprocess as mp
 import pandas as pd
 import psutil
 from dateutil.relativedelta import relativedelta
-from multiprocess import Pool
 
 from ._blocksci import *
 from ._blocksci import _traverse
@@ -90,6 +90,15 @@ class _NoDefault:
 MISSING_PARAM = _NoDefault()
 
 
+def _multiprocess_context():
+    # Python 3.12+ warns when forking a multithreaded process. Pytest and
+    # native extension imports can start helper threads, so prefer spawn on
+    # Darwin where fork-without-exec is particularly fragile.
+    if sys.platform == "darwin" and sys.version_info >= (3, 12):
+        return mp.get_context("spawn")
+    return mp.get_context()
+
+
 # Alert the user if the disk space is getting full
 disk_info = os.statvfs("/")
 free_space = (disk_info.f_frsize * disk_info.f_bavail) // (1024**3)
@@ -138,7 +147,7 @@ def mapreduce_block_ranges(chain, map_func, reduce_func, init=MISSING_PARAM, sta
         file.seek(0)
         return file
 
-    with Pool(cpu_count - 1) as p:
+    with _multiprocess_context().Pool(cpu_count - 1) as p:
         results_future = p.map_async(real_map_func, segments[1:])
         first = map_func(chain[raw_segments[0][0] : raw_segments[0][1]])
         results = results_future.get()
