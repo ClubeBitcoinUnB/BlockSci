@@ -39,6 +39,48 @@ sys.modules["blocksci.cluster"] = cluster
 sys.modules["blocksci.heuristics"] = heuristics
 sys.modules["blocksci.heuristics.change"] = heuristics.change
 
+# pybind11 3 gives enums Python-native ``Enum`` formatting by default
+# (``address_type.pubkeyhash`` / ``<address_type.pubkeyhash: 2>``).
+# BlockSci's public API and regression fixtures historically exposed a
+# human-readable ``str()`` and a compact qualified-name ``repr()``.
+_ADDRESS_TYPE_LABELS = {
+    address_type.pubkey: "Pay to pubkey",
+    address_type.pubkeyhash: "Pay to pubkey hash",
+    address_type.scripthash: "Pay to script hash",
+    address_type.multisig: "Multisig",
+    address_type.multisig_pubkey: "Multisig Public Key",
+    address_type.nonstandard: "Nonstandard",
+    address_type.nulldata: "Null data",
+    address_type.witness_pubkeyhash: "Pay to witness pubkey hash",
+    address_type.witness_scripthash: "Pay to witness script hash",
+    address_type.witness_unknown: "Pay to witness unknown",
+}
+
+_ADDRESS_TYPE_REPR_NAMES = {
+    address_type.pubkey: "pubkey",
+    address_type.pubkeyhash: "pubkeyhash",
+    address_type.scripthash: "scripthash",
+    address_type.multisig: "multisig",
+    address_type.multisig_pubkey: "multisig_pubkey",
+    address_type.nonstandard: "nonstandard",
+    address_type.nulldata: "nulldata",
+    address_type.witness_pubkeyhash: "witness_pubkeyhash",
+    address_type.witness_scripthash: "witness_scripthash",
+    address_type.witness_unknown: "witness_unknown",
+}
+
+
+def _address_type_str(value):
+    return _ADDRESS_TYPE_LABELS.get(value, "Unknown Address Type")
+
+
+def _address_type_repr(value):
+    return f"address_type.{_ADDRESS_TYPE_REPR_NAMES.get(value, 'unknown')}"
+
+
+address_type.__str__ = _address_type_str
+address_type.__repr__ = _address_type_repr
+
 
 class _NoDefault:
     def __repr__(self):

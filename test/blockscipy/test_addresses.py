@@ -4,6 +4,13 @@ import pytest
 from util import Coin, sorted_tx_list
 
 
+def test_address_type_str_repr():
+    assert str(blocksci.address_type.pubkeyhash) == "Pay to pubkey hash"
+    assert repr(blocksci.address_type.pubkeyhash) == "address_type.pubkeyhash"
+    assert str(blocksci.address_type.scripthash) == "Pay to script hash"
+    assert repr(blocksci.address_type.scripthash) == "address_type.scripthash"
+
+
 def address_types(chain_name):
     if chain_name == "btc":
         return ["p2pkh", "p2sh", "p2wpkh", "p2wsh"]
