@@ -916,6 +916,21 @@ class DummyClass:
 loaderDirectory = os.path.dirname(os.path.abspath(inspect.getsourcefile(DummyClass)))
 
 
+def _load_pool_data():
+    import json
+
+    pools_path = os.environ.get(
+        "BLOCKSCI_POOLS_JSON",
+        os.path.join(loaderDirectory, "Blockchain-Known-Pools", "pools.json"),
+    )
+    try:
+        with open(pools_path) as f:
+            return json.load(f)
+    except FileNotFoundError:
+        logging.warning("BlockSci miner labels disabled: pools.json not found at %s", pools_path)
+        return {"payout_addresses": {}, "coinbase_tags": {}}
+
+
 def get_miner(block) -> str:
     """
     Get the miner of the block based on the text in the coinbase transaction
@@ -925,20 +940,18 @@ def get_miner(block) -> str:
     global pool_data
     global coinbase_tag_re
     if first_miner_run:
-        import json
-
-        with open(loaderDirectory + "/Blockchain-Known-Pools/pools.json") as f:
-            pool_data = json.load(f)
-        addresses = [block._access.address_from_string(addr_string) for addr_string in pool_data["payout_addresses"]]
-        tagged_addresses = {
-            pointer: pool_data["payout_addresses"][address]
-            for address in addresses
-            if address in pool_data["payout_addresses"]
-        }
-        coinbase_tag_re = re.compile("|".join(map(re.escape, pool_data["coinbase_tags"])))
+        pool_data = _load_pool_data()
+        tagged_addresses = {}
+        for addr_string, pool_info in pool_data.get("payout_addresses", {}).items():
+            try:
+                tagged_addresses[block._access.address_from_string(addr_string)] = pool_info
+            except Exception:
+                logging.debug("Skipping invalid miner payout address %s", addr_string, exc_info=True)
+        coinbase_tags = pool_data.get("coinbase_tags", {})
+        coinbase_tag_re = re.compile("|".join(map(re.escape, coinbase_tags))) if coinbase_tags else None
         first_miner_run = False
     coinbase = block.coinbase_param.decode("utf_8", "replace")
-    tag_matches = re.findall(coinbase_tag_re, coinbase)
+    tag_matches = re.findall(coinbase_tag_re, coinbase) if coinbase_tag_re is not None else []
     if tag_matches:
         return pool_data["coinbase_tags"][tag_matches[0]]["name"]
     for txout in block.coinbase_tx.outs:
