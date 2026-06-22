@@ -39,6 +39,10 @@ add_subdirectory(external)
 
 target_compile_options(_blocksci PRIVATE -Wall -Wextra -Wpedantic)
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_compile_options(_blocksci PRIVATE -O1)
+endif()
+
 target_link_libraries(
 	_blocksci
 	
