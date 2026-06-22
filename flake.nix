@@ -32,12 +32,57 @@
             pycryptodome
             requests
           ];
+        pytestRegtest = pkgs.python3Packages.buildPythonPackage rec {
+          pname = "pytest-regtest";
+          version = "2.5.1";
+          pyproject = true;
+
+          src = pkgs.fetchPypi {
+            pname = "pytest_regtest";
+            inherit version;
+            hash = "sha256-hPd/GPpwKVN3Zi3pbXIdA7MtBVCcU+E2au7BHb7VbsA=";
+          };
+
+          build-system = with pkgs.python3Packages; [
+            setuptools
+          ];
+
+          dependencies = with pkgs.python3Packages; [
+            deepdiff
+            pytest
+          ];
+
+          # nixpkgs 26.05 currently ships deepdiff 8.x while pytest-regtest
+          # 2.5.1 declares deepdiff >= 9. BlockSci's regression tests exercise
+          # the plugin successfully with deepdiff 8.x, so relax this until
+          # nixpkgs updates deepdiff or we add a dedicated deepdiff 9 package.
+          pythonRelaxDeps = [ "deepdiff" ];
+
+          pythonImportsCheck = [ "pytest_regtest" ];
+
+          doCheck = false;
+        };
+        pythonTestDeps =
+          ps: [
+            ps.pytest
+            ps."pytest-benchmark"
+            pytestRegtest
+            ps.pytz
+            ps.tzlocal
+          ];
         knownPools = pkgs.fetchFromGitHub {
           owner = "blockchain";
           repo = "Blockchain-Known-Pools";
           rev = "29ab27c844ebdb63110f8783f73b9decd4abc221";
           sha256 = "sha256-nFWprW6+PXDCIW/IjbAm9PNTMs+Clu42gCtfNnTU8QI=";
         };
+        pythonDevEnv = pkgs.python3.withPackages (
+          ps:
+          [
+            self.packages.${system}.blockscipy
+          ]
+          ++ pythonTestDeps ps
+        );
         mkHeaderOnly =
           {
             pname,
@@ -141,45 +186,34 @@
         };
 
         devShells.default = pkgs.mkShell {
-          inputsFrom = [
+          packages = with pkgs; [
             self.packages.${system}.default
+            pythonDevEnv
+            clang-tools
+            cmake
+            ninja
+            ruff
           ];
 
-          nativeBuildInputs =
-            with pkgs;
-            [
-              python3
-              python3Packages.pip
-              python3Packages.scikit-build-core
-              clang-tools
-              ninja
-              ruff
-            ]
-            ++ pythonRuntimeDeps pkgs.python3Packages;
-
-          buildInputs = with pkgs; [
-            python3Packages.pybind11
-            howard-hinnant-date
-          ];
-
-          shellHook = ''
-            export LOCAL_PIP="$PWD/.nix-pip"
-            export PYTHONPATH="$LOCAL_PIP/${pkgs.python3.sitePackages}:$PYTHONPATH"
-            export PATH="$LOCAL_PIP/bin:$PATH"
-
-            export CMAKE_PREFIX_PATH="$PWD/.nix-install:$CMAKE_PREFIX_PATH"
-          ''
-          + (
-            if pkgs.stdenv.isDarwin then
-              ''
-                export DYLD_LIBRARY_PATH="$PWD/.nix-install/lib:$DYLD_LIBRARY_PATH"
-              ''
-            else
-              ''
-                export LD_LIBRARY_PATH="$PWD/.nix-install/lib64:$LD_LIBRARY_PATH"
-              ''
-          );
+          BLOCKSCI_POOLS_JSON = "${knownPools}/pools.json";
+          CMAKE_PREFIX_PATH = "${self.packages.${system}.default}";
         };
+
+        # Initial flake CI intentionally covers BTC regtest only. BCH/LTC
+        # coverage can be added as follow-up checks once BTC remains stable.
+        checks.blockscipy-btc = pkgs.runCommand "blocksci-python-btc-tests" {
+          nativeBuildInputs = [
+            self.packages.${system}.default
+            pythonDevEnv
+          ];
+          BLOCKSCI_POOLS_JSON = "${knownPools}/pools.json";
+        } ''
+          cp -R ${self}/test "$TMPDIR/test"
+          chmod -R u+w "$TMPDIR/test"
+          cd "$TMPDIR/test/blockscipy"
+          python -m pytest --btc -q
+          touch "$out"
+        '';
 
         packages.bitcoin-api-cpp = pkgs.stdenv.mkDerivation {
           pname = "bitcoin-api-cpp";
