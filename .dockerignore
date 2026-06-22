@@ -1,0 +1,11 @@
+release
+install
+build
+result
+**/.nix-install
+**/.nix-pip
+**/__pycache__
+**/*.egg-info
+**/*.so
+**/*.dylib
+**/dist

@@ -81,3 +81,9 @@ find_path(BITCOINAPI_INCLUDE_DIR bitcoinapi/bitcoinapi.h REQUIRED)
 add_library(bitcoinapi INTERFACE)
 target_include_directories(bitcoinapi SYSTEM INTERFACE ${BITCOINAPI_INCLUDE_DIR})
 target_link_libraries(bitcoinapi INTERFACE ${BITCOINAPI_LIBRARY})
+
+# bitcoin-api-cpp headers include <json/json.h>; give consumers jsoncpp's path.
+find_path(JSONCPP_INCLUDE_DIR json/json.h PATH_SUFFIXES jsoncpp)
+if(JSONCPP_INCLUDE_DIR)
+  target_include_directories(bitcoinapi SYSTEM INTERFACE ${JSONCPP_INCLUDE_DIR})
+endif()
