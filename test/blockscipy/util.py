@@ -6,7 +6,10 @@ FEE = 0.0001
 
 def correct_timestamp(ts):
     tz = get_localzone()
-    ts_local = tz.localize(ts)
+    if hasattr(tz, "localize"):
+        ts_local = tz.localize(ts)
+    else:
+        ts_local = ts.replace(tzinfo=tz)
     return ts_local.astimezone(pytz.utc)
 
 
