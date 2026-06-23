@@ -167,6 +167,17 @@
 
           dontUseCmakeConfigure = true;
 
+          preBuild = ''
+            parallel_level="''${NIX_BUILD_CORES:-1}"
+
+            if [ "$parallel_level" -lt 1 ]; then
+              parallel_level=1
+            fi
+
+            export CMAKE_BUILD_PARALLEL_LEVEL="$parallel_level"
+            echo "CMAKE_BUILD_PARALLEL_LEVEL=$CMAKE_BUILD_PARALLEL_LEVEL"
+          '';
+
           buildInputs = with pkgs; [
             howard-hinnant-date
             self.packages.${system}.default
