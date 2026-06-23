@@ -1,57 +1,67 @@
-# Building BlockSci with Nix
+# Building and Testing BlockSci with Nix
 
-This project ships a Nix flake that provides:
+This repository is Nix-first. The flake provides:
 
-- Two package derivations (`packages.default` for libblocksci + tools,
-  `packages.blockscipy` for the Python bindings).
-- A development shell (`devShells.default`) that reproduces the upstream
-  build manual with all native dependencies preinstalled, no system pollution.
+- `packages.default`: libblocksci and command-line tools, including `blocksci_parser`.
+- `packages.blockscipy`: Python bindings for BlockSci.
+- `devShells.default`: a ready-to-use development/test shell with BlockSci, pytest, and benchmark dependencies.
 
 The flake is pinned to `nixpkgs-25.11` and targets the four default systems
 (`x86_64`/`aarch64` × Linux/macOS).
 
-## Build libblocksci and the command-line tools
+## Build packages
 
-```
+Build the C++ library and command-line tools:
+
+```bash
 nix build
 ```
 
-## Build the Python bindings
+Build the Python bindings:
 
-```
+```bash
 nix build .#blockscipy
 ```
 
-## Building in the development shell
+## Development shell
 
-This workflow builds the project step by step, self-contained under
-`.nix-install/`, `.nix-pip/` and `release`.
+Enter the shell:
 
-1. Enter the shell:
-
-```
+```bash
 nix develop
 ```
 
-2. Build and install libblocksci:
+Inside the shell, Python imports the Nix-built `blocksci` package directly. No `pip install`, `LOCAL_PIP`, `.nix-pip`, or manual `PYTHONPATH` setup is required.
+
+Useful smoke checks:
 
 ```bash
-mkdir release && cd release
-cmake -DCMAKE_BUILD_TYPE=Release \
-      -DCMAKE_INSTALL_PREFIX=../.nix-install ..
-make
-make install
-cd ..
+python -c 'import blocksci; print(blocksci.__file__)'
+which blocksci_parser
 ```
 
-3. Build the Python bindings:
+Both should point into `/nix/store`.
 
-```
-pip install --no-build-isolation --prefix=$LOCAL_PIP ./blockscipy
+## Run Python regression tests
+
+```bash
+nix develop
+cd test/blockscipy
+python -m pytest --btc -q
 ```
 
-`LOCAL_PIP`, `CMAKE_PREFIX_PATH` and the dynamic-linker search path
-(`LD_LIBRARY_PATH`, or `DYLD_LIBRARY_PATH` on macOS) are exported by the
-shellHook so the two halves find each other at build and run time.
-`--no-build-isolation` makes pip use the `scikit-build-core` backend from the
-shell instead of fetching it from PyPI.
+The tests use synthetic Bitcoin regtest blocks from `test/files/btc/regtest/` and call `blocksci_parser` from the Nix package.
+The initial flake check intentionally covers BTC regtest only; BCH/LTC checks can be added later as separate follow-ups.
+
+## Run benchmarks
+
+```bash
+nix develop
+cd test/benchmark
+python -m pytest --btc -v --benchmark-autosave --benchmark-warmup=true --benchmark-warmup-iterations=1 --benchmark-sort=name --benchmark-columns=mean,median,max,rounds,iterations
+```
+
+## Known-pools data
+
+`Blockchain-Known-Pools` is fetched by Nix and exposed through `BLOCKSCI_POOLS_JSON`.
+The project no longer requires that repository as a Git submodule.
