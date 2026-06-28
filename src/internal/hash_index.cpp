@@ -76,7 +76,7 @@ namespace blocksci {
     columnDescriptors.emplace_back(rocksdb::kDefaultColumnFamilyName, rocksdb::ColumnFamilyOptions{});
     columnDescriptors.emplace_back("T", txOptions);
 
-    rocksdb::DB *dbPtr;
+    std::unique_ptr<rocksdb::DB> dbPtr;
     std::vector<rocksdb::ColumnFamilyHandle *> columnHandlePtrs;
     if (readonly) {
       rocksdb::Status s =
@@ -90,7 +90,7 @@ namespace blocksci {
         throw std::runtime_error{"Could not open hash index with error: " + std::string{s.getState()}};
       }
     }
-    db = std::unique_ptr<rocksdb::DB>(dbPtr);
+    std::move(dbPtr);
     for (auto handle : columnHandlePtrs) {
       columnHandles.emplace_back(std::unique_ptr<rocksdb::ColumnFamilyHandle>(handle));
     }
