@@ -54,10 +54,9 @@ sudo apt install \
 
 ```bash
 brew install \
-  cmake git boost openssl rocksdb google-sparsehash libsecp256k1 \
+  cmake git boost openssl rocksdb google-sparsehash secp256k1 \
   range-v3 nlohmann-json cereal googletest curl jsoncpp
 ```
-
 #### **Arch Linux:**
 
 > **Note:** Arch is not supported yet. Its rolling `rocksdb` (≥ 11) removed the
@@ -86,12 +85,29 @@ compiled libraries `libjson-rpc-cpp` and `bitcoin-api-cpp`.
 
 ## Build libblocksci and the tools
 
+### For general OS
+
 ```bash
 cmake -B release \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_INSTALL_LIBDIR=lib \
   -DCMAKE_PREFIX_PATH="$PREFIX"
+cmake --build release
+cmake --install release
+
+```
+
+### For macOS (Apple silicon)
+
+```bash
+cmake -B release \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_STANDARD=17 \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+  -DCMAKE_INSTALL_LIBDIR=lib \
+  -DCMAKE_PREFIX_PATH="$PREFIX;$(brew --prefix)" \
+  -DOPENSSL_ROOT_DIR="$(brew --prefix openssl)" 
 cmake --build release
 cmake --install release
 ```
@@ -113,7 +129,6 @@ Install into a virtual environment so the build does not touch system Python:
 python3 -m venv "$PREFIX/venv"
 source "$PREFIX/venv/bin/activate"
 ```
-
 `pip` reads `blockscipy/pyproject.toml`, builds the pybind11 module against the
 installed C++ library, and pulls the Python runtime dependencies from PyPI:
 
