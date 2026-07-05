@@ -1,0 +1,148 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nix-build:
+    name: Nix BTC checks
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Run flake checks
+        run: nix flake check -L --cores 1 --max-jobs 1
+
+  native-linux:
+    name: Native Linux build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      PREFIX: ${{ github.workspace }}/install
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential ca-certificates cmake git ninja-build pkg-config \
+            libboost-all-dev libssl-dev librocksdb-dev libsparsehash-dev \
+            libsecp256k1-dev librange-v3-dev nlohmann-json3-dev libcereal-dev \
+            libgtest-dev libcurl4-openssl-dev libjsoncpp-dev \
+            python3 python3-dev python3-pip python3-venv
+
+      - name: Build unpackaged dependencies
+        run: ./scripts/install-unpackaged-deps.sh "$PREFIX"
+
+      - name: Build and install C++ targets
+        run: |
+          cmake -S . -B release -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DCMAKE_PREFIX_PATH="$PREFIX"
+          cmake --build release --parallel 2
+          cmake --install release
+
+      - name: Build Python bindings
+        run: |
+          python3 -m venv "$PREFIX/venv"
+          "$PREFIX/venv/bin/python" -m pip install --upgrade pip setuptools wheel
+          CMAKE_PREFIX_PATH="$PREFIX" \
+            CMAKE_BUILD_PARALLEL_LEVEL=2 \
+            "$PREFIX/venv/bin/python" -m pip install ./blockscipy
+
+      - name: Smoke test native Linux build
+        run: |
+          export PATH="$PREFIX/bin:$PREFIX/venv/bin:$PATH"
+          export LD_LIBRARY_PATH="$PREFIX/lib:${LD_LIBRARY_PATH:-}"
+          blocksci_parser --help >/dev/null
+          python -c 'import blocksci; print(blocksci.VERSION)'
+
+  native-macos:
+    name: Native macOS arm64 build
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      PREFIX: ${{ github.workspace }}/install
+      BLOCKSCI_BUILD_ROCKSDB: "1"
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: "1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          brew install \
+            cmake ninja git boost openssl google-sparsehash secp256k1 \
+            range-v3 nlohmann-json cereal googletest curl jsoncpp \
+            bzip2 lz4 snappy zstd
+
+      - name: Build unpackaged and pinned dependencies
+        run: ./scripts/install-unpackaged-deps.sh "$PREFIX"
+
+      - name: Build and install C++ targets
+        run: |
+          brew_prefix="$(brew --prefix)"
+          openssl_prefix="$(brew --prefix openssl)"
+          cmake -S . -B release -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+            -DCMAKE_INSTALL_LIBDIR=lib \
+            -DCMAKE_PREFIX_PATH="$PREFIX;$brew_prefix" \
+            -DOPENSSL_ROOT_DIR="$openssl_prefix"
+          cmake --build release --parallel 2
+          cmake --install release
+
+      - name: Build Python bindings
+        run: |
+          brew_prefix="$(brew --prefix)"
+          openssl_prefix="$(brew --prefix openssl)"
+          python3 -m venv "$PREFIX/venv"
+          "$PREFIX/venv/bin/python" -m pip install --upgrade \
+            pip setuptools wheel scikit-build-core pybind11
+          pybind11_dir="$("$PREFIX/venv/bin/python" -c 'import pybind11; print(pybind11.get_cmake_dir())')"
+          test -f "$PREFIX/lib/cmake/blocksci/blocksci-config.cmake"
+          test -f "$pybind11_dir/pybind11Config.cmake"
+          CMAKE_BUILD_PARALLEL_LEVEL=2 \
+            "$PREFIX/venv/bin/python" -m pip install -v --no-build-isolation ./blockscipy \
+              --config-settings=cmake.define.CMAKE_PREFIX_PATH="$PREFIX;$brew_prefix;$pybind11_dir" \
+              --config-settings=cmake.define.blocksci_DIR="$PREFIX/lib/cmake/blocksci" \
+              --config-settings=cmake.define.pybind11_DIR="$pybind11_dir" \
+              --config-settings=cmake.define.OPENSSL_ROOT_DIR="$openssl_prefix" \
+              --config-settings=build.verbose=true
+
+      - name: Smoke test native macOS build
+        run: |
+          export PATH="$PREFIX/bin:$PREFIX/venv/bin:$PATH"
+          export DYLD_LIBRARY_PATH="$PREFIX/lib:${DYLD_LIBRARY_PATH:-}"
+          blocksci_parser --help >/dev/null
+          python -c 'import blocksci; print(blocksci.VERSION)'
