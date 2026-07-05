@@ -131,7 +131,6 @@
             gtest
             nlohmann_json
             openssl
-            rocksdb
             secp256k1
             sparsehash
             self.packages.${system}.bitcoin-api-cpp
@@ -139,6 +138,7 @@
             self.packages.${system}.endian
             self.packages.${system}.filesystem
             self.packages.${system}.mio
+            self.packages.${system}.rocksdb_8_9_1
           ];
 
           propagatedBuildInputs = with pkgs; [
@@ -254,6 +254,64 @@
             jsoncpp
             libjson-rpc-cpp
           ];
+        };
+
+        packages.rocksdb_8_9_1 = pkgs.stdenv.mkDerivation {
+          pname = "rocksdb";
+          version = "8.9.1";
+
+          src = pkgs.fetchFromGitHub {
+            owner = "facebook";
+            repo = "rocksdb";
+            rev = "v8.9.1";
+            hash = "sha256-Pl7t4FVOvnORWFS+gjy2EEUQlPxjLukWW5I5gzCQwkI=";
+          };
+
+          nativeBuildInputs = with pkgs; [
+            cmake
+            ninja
+          ];
+
+          propagatedBuildInputs = with pkgs; [
+            bzip2
+            lz4
+            snappy
+            zlib
+            zstd
+          ];
+
+          postPatch = ''
+            # GCC 15 no longer accepts relying on transitive cstdint includes.
+            substituteInPlace include/rocksdb/rocksdb_namespace.h \
+              --replace-fail '#pragma once' '#pragma once
+
+            #include <cstdint>'
+          '';
+
+          cmakeFlags = [
+            "-DPORTABLE=1"
+            "-DWITH_JEMALLOC=0"
+            "-DWITH_JNI=0"
+            "-DWITH_BENCHMARK_TOOLS=0"
+            "-DWITH_TESTS=0"
+            "-DWITH_TOOLS=0"
+            "-DWITH_CORE_TOOLS=0"
+            "-DWITH_BZ2=1"
+            "-DWITH_LZ4=1"
+            "-DWITH_SNAPPY=1"
+            "-DWITH_ZLIB=1"
+            "-DWITH_ZSTD=1"
+            "-DWITH_GFLAGS=0"
+            "-DUSE_RTTI=1"
+            "-DFAIL_ON_WARNINGS=NO"
+          ];
+
+          postFixup = ''
+            if [ -f "$out"/lib/pkgconfig/rocksdb.pc ]; then
+              substituteInPlace "$out"/lib/pkgconfig/rocksdb.pc \
+                --replace-fail '="''${prefix}//' '="/'
+            fi
+          '';
         };
 
         packages.dset = mkHeaderOnly {
