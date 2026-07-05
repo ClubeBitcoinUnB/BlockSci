@@ -44,7 +44,7 @@ cxx_variadic_templates
 cxx_template_template_parameters
 )
 
-target_compile_features(blocksci PUBLIC ${BLOCKSCI_FEATURE_REQUIREMENTS})
+target_compile_features(blocksci PUBLIC cxx_std_17 ${BLOCKSCI_FEATURE_REQUIREMENTS})
 
 target_compile_options(blocksci PRIVATE -Wall -Wextra -Wpedantic)
 
