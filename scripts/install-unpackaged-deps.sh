@@ -83,6 +83,42 @@ if command -v brew >/dev/null 2>&1; then
   prefix_path="$PREFIX;$(brew --prefix)"
 fi
 
+if [ "${BLOCKSCI_BUILD_ROCKSDB:-0}" = "1" ]; then
+  log "facebook/rocksdb 8.9.1"
+  src="$(fetch facebook/rocksdb v8.9.1)"
+  sed -i.bak \
+    's|#pragma once|#pragma once\
+\
+#include <cstdint>|' \
+    "$src/include/rocksdb/rocksdb_namespace.h"
+  cmake -S "$src" -B "$src/build" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+    -DCMAKE_INSTALL_LIBDIR=lib \
+    -DCMAKE_PREFIX_PATH="$prefix_path" \
+    -DPORTABLE=1 \
+    -DWITH_JEMALLOC=0 \
+    -DWITH_JNI=0 \
+    -DWITH_BENCHMARK_TOOLS=0 \
+    -DWITH_TESTS=0 \
+    -DWITH_TOOLS=0 \
+    -DWITH_CORE_TOOLS=0 \
+    -DWITH_BZ2=1 \
+    -DWITH_LZ4=1 \
+    -DWITH_SNAPPY=1 \
+    -DWITH_ZLIB=1 \
+    -DWITH_ZSTD=1 \
+    -DWITH_GFLAGS=0 \
+    -DUSE_RTTI=1 \
+    -DFAIL_ON_WARNINGS=NO
+  cmake --build "$src/build" -j "$JOBS"
+  cmake --install "$src/build"
+  if [ -f "$PREFIX/lib/pkgconfig/rocksdb.pc" ]; then
+    sed -i.bak 's|="${prefix}//|="/|g' "$PREFIX/lib/pkgconfig/rocksdb.pc"
+  fi
+  prefix_path="$PREFIX;$prefix_path"
+fi
+
 log "cinemast/libjson-rpc-cpp 1.4.1 (HTTP client only)"
 src="$(fetch cinemast/libjson-rpc-cpp v1.4.1)"
 for pat in 'cmake_minimum_required(VERSION 3.0)' 'cmake_policy(SET CMP0042 OLD)'; do

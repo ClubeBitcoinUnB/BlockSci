@@ -54,9 +54,14 @@ sudo apt install \
 
 ```bash
 brew install \
-  cmake git boost openssl rocksdb google-sparsehash secp256k1 \
-  range-v3 nlohmann-json cereal googletest curl jsoncpp
+  cmake git boost openssl google-sparsehash secp256k1 \
+  range-v3 nlohmann-json cereal googletest curl jsoncpp \
+  bzip2 lz4 snappy zstd
 ```
+
+Homebrew's latest `rocksdb` currently requires newer C++ headers than BlockSci's
+supported C++17 build. Build the pinned RocksDB version into `$PREFIX` with the
+unpackaged dependency script instead.
 #### **Arch Linux:**
 
 > **Note:** Arch is not supported yet. Its rolling `rocksdb` (≥ 11) removed the
@@ -77,6 +82,12 @@ installs them into `$PREFIX`:
 
 ```bash
 ./scripts/install-unpackaged-deps.sh "$PREFIX"
+```
+
+On macOS, include the pinned RocksDB build used by CI:
+
+```bash
+BLOCKSCI_BUILD_ROCKSDB=1 ./scripts/install-unpackaged-deps.sh "$PREFIX"
 ```
 
 This installs the header-only libraries `mpark/variant`, `wjfilesystem`, `mio`,
