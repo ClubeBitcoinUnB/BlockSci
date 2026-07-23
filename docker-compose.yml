@@ -1,0 +1,17 @@
+services:
+  blocksci:
+    image: blocksci:ubuntu
+    pull_policy: build
+    build:
+      context: .
+      dockerfile: docker/ubuntu.Dockerfile
+    working_dir: /workspace/BlockSci
+    volumes:
+      - .:/workspace/BlockSci
+      - blocksci-data:/data
+    stdin_open: true
+    tty: true
+    command: bash
+
+volumes:
+  blocksci-data:
