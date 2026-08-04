@@ -3,6 +3,11 @@
 # The Nix flake remains the canonical/reproducible build. This image follows
 # build.md, keeps the build toolchain available for debugging, and installs the
 # CLI tools plus Python bindings into /opt/blocksci.
+#
+# Layers are ordered so that expensive dependency installation is cached and
+# only the final source COPY is invalidated when application code changes.
+# COPY --chown replaces a separate chown -R RUN to avoid duplicating image
+# content in an extra layer.
 FROM ubuntu:24.04
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -32,9 +37,16 @@ ENV PREFIX=/opt/blocksci \
 
 WORKDIR /workspace/BlockSci
 
+# Create the non-root user and group before any COPY so --chown can reference
+# numeric UID/GID.  /data is also pre-created and owned by that user.
+RUN groupadd --gid "$USER_GID" "$USERNAME" \
+ && useradd --uid "$USER_UID" --gid "$USER_GID" --create-home --shell /bin/bash "$USERNAME" \
+ && mkdir -p /data \
+ && chown "$USERNAME:$USERNAME" /data
+
 # Build unpackaged/pinned dependencies before copying the full source tree so
 # normal source changes can reuse the dependency layer.
-COPY scripts/install-unpackaged-deps.sh /tmp/install-unpackaged-deps.sh
+COPY --chown=$USER_UID:$USER_GID scripts/install-unpackaged-deps.sh /tmp/install-unpackaged-deps.sh
 RUN bash /tmp/install-unpackaged-deps.sh "$PREFIX" \
  && rm /tmp/install-unpackaged-deps.sh
 
@@ -47,7 +59,7 @@ RUN python3 -m venv "$VIRTUAL_ENV" \
       pytz \
       tzlocal
 
-COPY . .
+COPY --chown=$USER_UID:$USER_GID . .
 
 RUN jobs="${BUILD_JOBS:-$(nproc)}" \
  && cmake -B release \
@@ -64,11 +76,6 @@ RUN jobs="${BUILD_JOBS:-$(nproc)}" \
       "$VIRTUAL_ENV/bin/python" -m pip install ./blockscipy \
  && blocksci_parser --help >/tmp/blocksci_parser_help.txt \
  && python -c "import blocksci; print(blocksci.VERSION)"
-
-RUN mkdir -p /data \
- && groupadd --gid "$USER_GID" "$USERNAME" \
- && useradd --uid "$USER_UID" --gid "$USER_GID" --create-home --shell /bin/bash "$USERNAME" \
- && chown -R "$USERNAME:$USERNAME" "$PREFIX" /workspace/BlockSci /data
 
 USER $USERNAME
 

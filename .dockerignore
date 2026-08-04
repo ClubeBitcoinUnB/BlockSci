@@ -11,10 +11,12 @@ debug
 xcode
 install
 build
+build-nix
 bin
 lib
 result
 result-*
+*.d
 
 # Nix/local Python helper outputs.
 **/.nix-install
@@ -35,6 +37,8 @@ LOCAL_PIP
 
 # Editor, OS, and runtime noise.
 .idea
+.clangd
+.cache
 *.DS_Store
 *.log
 test-chain
