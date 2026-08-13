@@ -1,11 +1,46 @@
+# VCS and hosted-CI metadata are not needed in the build context.
+.git
+.github
+.circleci
+.travis
+.git-blame-ignore-revs
+
+# Local build/install outputs.
 release
+debug
+xcode
 install
 build
+build-nix
+bin
+lib
 result
+result-*
+*.d
+
+# Nix/local Python helper outputs.
 **/.nix-install
 **/.nix-pip
+LOCAL_PIP
+
+# Python/package caches and artifacts.
 **/__pycache__
+**/.pytest_cache
+**/*.pyc
 **/*.egg-info
+**/dist
+.benchmarks
+
+# Compiled artifacts from local builds.
 **/*.so
 **/*.dylib
-**/dist
+
+# Editor, OS, and runtime noise.
+.idea
+.clangd
+.cache
+*.DS_Store
+*.log
+test-chain
+docs/_build
+docs/_output
