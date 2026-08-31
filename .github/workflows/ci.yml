@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Nix
         uses: cachix/install-nix-action@v31
@@ -45,7 +45,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install system dependencies
         run: |
@@ -70,11 +70,6 @@ jobs:
           cmake --build release --parallel 2
           cmake --install release
 
-      - name: Run C++ unit tests
-        run: |
-          cmake --build release --target blocksci_unittest --parallel 2
-          release/test/blocksci/blocksci_unittest /tmp/blocksci-test-config.json
-
       - name: Parse BTC regtest fixture
         run: |
           export PATH="$PREFIX/bin:$PATH"
@@ -88,6 +83,11 @@ jobs:
             bitcoin_regtest /tmp/btc-ci-data \
             --disk test/files/btc/regtest/
           blocksci_parser /tmp/btc-ci.json update
+
+      - name: Run C++ unit tests
+        run: |
+          cmake --build release --target blocksci_unittest --parallel 2
+          release/test/blocksci/blocksci_unittest /tmp/btc-ci.json
 
       - name: Run integrity check
         run: |
@@ -122,7 +122,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install system dependencies
         run: |
@@ -181,7 +181,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install system dependencies
         run: |
@@ -224,7 +224,7 @@ jobs:
 
       - name: Upload benchmark data
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: benchmark-data
           path: test/benchmark/.benchmarks/
